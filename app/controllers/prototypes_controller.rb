@@ -10,8 +10,12 @@ class PrototypesController < ApplicationController
   end
 
   def create
-    Prototype.create(prototype_params)
-    redirect_to '/'
+    @prototype = Prototype.new(prototype_params)
+    if @prototype.save
+      redirect_to root_path
+    else
+      render :new, status: :unprocessable_entity
+    end
   end
 
   def show
@@ -22,12 +26,17 @@ class PrototypesController < ApplicationController
 
   def edit
     @prototype = Prototype.find(params[:id])
+    unless current_user == @prototype.user
+      redirect_to root_path, alert: "編集権限がありません"
+    end
   end
 
   def update
-    prototype = Prototype.find(params[:id])
-    if prototype.update(prototype_params)
-      redirect_to root_path
+    @prototype = Prototype.find(params[:id])
+    if current_user == @prototype.user && @prototype.update(prototype_params)
+      redirect_to prototype_path(@prototype), notice: "プロトタイプを更新しました"
+    elsif current_user != @prototype.user
+      redirect_to root_path, alert: "編集権限がありません"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -46,7 +55,7 @@ class PrototypesController < ApplicationController
 
   def move_to_index
     unless user_signed_in?
-      redirect_to new_user_session_path
+      redirect_to new_user_session_path and return
     end
   end
 
